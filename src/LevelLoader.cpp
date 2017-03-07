@@ -14,6 +14,7 @@
 #include "ShaderManager.h"
 #include "ShapeManager.h"
 #include "MaterialManager.h"
+#include "AudioManager.h"
 
 #include <fstream>
 #include <glm/gtc/type_ptr.hpp>
@@ -81,6 +82,16 @@ int LevelLoader::loadLevel(GameWorld &world, std::shared_ptr<GameObject> &player
       return res;
    }
 
+   if ((res = parseSoundtrack(level["soundtrack"]))) {
+      std::cerr << "Error parsing soundtrack." << std::endl;
+      return res;
+   }
+
+   if ((res = parseSoundeffects(level["soundeffects"]))) {
+      std::cerr << "Error parsing soundeffects." << std::endl;
+      return res;
+   }
+
    return res;
 }
 
@@ -91,9 +102,14 @@ int LevelLoader::parseShaders(json shaders) {
       ShaderManager& shaderManager = ShaderManager::instance();
 
       for (json shader : shaders) {
+         std::string shaderName = shader["name"];
+
          if (shaderManager.createIsomorphicShader(resourceManager,
-             shader["name"], shader["file-prefix"]) == 0) {
+             shaderName, shader["file-prefix"]) == 0) {
             return 1;
+         }
+         if (shader["default"]) {
+             shaderManager.setDefaultShader(shaderName);
          }
       }
       // load shadow pass shader
@@ -216,6 +232,30 @@ int LevelLoader::parseLights(GameWorld &world, json lightObjs) {
          };
 
          world.addLight(light);
+      }
+   }
+
+   return 0;
+}
+
+int LevelLoader::parseSoundtrack(json soundtrackObjs) {
+   AudioManager& audioManager = AudioManager::instance();
+
+   if (soundtrackObjs != nullptr) {
+      for (json track : soundtrackObjs) {
+         audioManager.addTrack(track["filename"]);
+      }
+   }
+
+   return 0;
+}
+
+int LevelLoader::parseSoundeffects(json soundeffectObjs) {
+   AudioManager& audioManager = AudioManager::instance();
+
+   if (soundeffectObjs != nullptr) {
+      for (json effect : soundeffectObjs) {
+         audioManager.addEffect(effect["name"], effect["filename"]);
       }
    }
 

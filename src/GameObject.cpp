@@ -1,3 +1,5 @@
+#include "BillboardPhysicsComponent.h"
+#include "BillboardRenderComponent.h"
 #include "GameObject.h"
 #include "GameManager.h"
 #include "AimRenderComponent.h"
@@ -21,6 +23,7 @@ GameObject::GameObject(GameObjectType objType,
 	type(objType),
 	toggleMovement(false),
       cookieDeliverable(deliverable),
+   fracture(false),
 	orientAngle_(0),
 	yRotationAngle_(0),
 	render_(render),
@@ -68,10 +71,11 @@ void GameObject::initComponents() {
 }
 
 void GameObject::createMarkerObject() {
+	ShaderManager& shaderManager = ShaderManager::instance();
     ShapeManager& shapeManager = ShapeManager::instance();
     MaterialManager& materialManager = MaterialManager::instance();
     AimRenderComponent* arrowRenderComponent = new AimRenderComponent(
-            shapeManager.getShape("Arrow"), "Phong", materialManager.getMaterial("Bright Green"));
+            shapeManager.getShape("Arrow"), shaderManager.DefaultShader, materialManager.getMaterial("Bright Green"));
     MarkerPhysicsComponent* markerPhysicsComponent = new MarkerPhysicsComponent();
 
 
@@ -194,6 +198,39 @@ void GameObject::performAction(double deltaTime, double totalTime) {
     }
 }
 
+void GameObject::spawnHitBillboardEffect(glm::vec3& positionOfHit) {
+	static bool areTexturesLoaded = false;
+	static std::shared_ptr<Texture> billboardTexture;
+
+	if (!areTexturesLoaded) {
+		billboardTexture = std::make_shared<Texture>();
+		billboardTexture->loadTexture("../resources/billboard/pow-text-stuff.jpg", "billboardTex");
+	}
+
+	GameManager& gameManager = GameManager::instance();
+	GameWorld& world = gameManager.getGameWorld();
+
+	MaterialManager& materialManager = MaterialManager::instance();
+	ShapeManager& shapeManager = ShapeManager::instance();
+	BillboardRenderComponent* billboardRenderComponent = new BillboardRenderComponent(
+		shapeManager.getShape("Cube"), "Billboard", materialManager.getMaterial("Bright Green"), billboardTexture);
+	BillboardPhysicsComponent* billboardPhysicsComponent = new BillboardPhysicsComponent();
+
+	std::shared_ptr<GameObject> billboardEffect = std::make_shared<GameObject>(GameObjectType::DYNAMIC_OBJECT,
+		positionOfHit,
+		glm::vec3(0.0f, 1.0f, 0.0f),
+		5.0f,
+		glm::vec3(1.0f),
+		nullptr,
+		billboardPhysicsComponent,
+		billboardRenderComponent,
+		nullptr
+		);
+	billboardEffect->initComponents();
+
+	world.addDynamicGameObject(billboardEffect);
+}
+
 void GameObject::changeShader(const std::string& newShaderName) {
 	if (render_ != NULL) {
 		render_->changeShader(newShaderName);
@@ -237,4 +274,24 @@ GameObjectType GameObject::stringToType(std::string type) {
 		//default to static object
 		return GameObjectType::STATIC_OBJECT;
 	}
+}
+
+void GameObject::setFragmentDirs(std::shared_ptr<std::vector<glm::vec3>> fragDirs) {
+   fragDirs_ = fragDirs;
+
+   // Initialize all fragments to the objects original position.
+   fragPos_ = std::make_shared<std::vector<glm::vec3>>();
+   int numFrags = fragDirs->size();
+
+   for (int i = 0; i < numFrags; i++) {
+      fragPos_->push_back(position_);
+   }
+}
+
+std::shared_ptr<std::vector<glm::vec3>> GameObject::getFragmentDirs() {
+   return fragDirs_;
+}
+
+std::shared_ptr<std::vector<glm::vec3>> GameObject::getFragmentPos() {
+   return fragPos_;
 }

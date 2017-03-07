@@ -1,4 +1,5 @@
 #include <glm/gtx/rotate_vector.hpp>
+#include <algorithm>
 
 #include "CookieActionComponent.h"
 #include "GameManager.h"
@@ -20,8 +21,16 @@ void GameWorld::addDynamicGameObject(std::shared_ptr<GameObject> obj) {
 	dynamicGameObjectsToAdd_.push(obj);
 }
 
+void GameWorld::rmDynamicGameObject(std::shared_ptr<GameObject> obj) {
+   dynamicGameObjectsToRemove_.push(obj);
+}
+
 void GameWorld::addStaticGameObject(std::shared_ptr<GameObject> obj) {
 	staticGameObjectsToAdd_.push(obj);
+}
+
+void GameWorld::rmStaticGameObject(std::shared_ptr<GameObject> obj) {
+   staticGameObjectsToRemove_.push(obj);
 }
 
 void GameWorld::addLight(const std::shared_ptr<Light> light) {
@@ -278,7 +287,6 @@ void GameWorld::addBunnyToGameWorld() {
 	ShaderManager& shaderManager = ShaderManager::instance();
    ShapeManager& shapeManager = ShapeManager::instance();
    MaterialManager& materialManager = MaterialManager::instance();
-	std::shared_ptr<Program> progPhong = shaderManager.getShaderProgram("Phong");
 
 	// Get a random start location between (-10, 0, -10) and (10, 0, 10)
 	float randomStartX = (std::rand() % 20) - 10.0f;
@@ -295,7 +303,7 @@ void GameWorld::addBunnyToGameWorld() {
 
 	BunnyPhysicsComponent* bunnyPhysicsComp = new BunnyPhysicsComponent();
 	BunnyRenderComponent* bunnyRenderComp = new BunnyRenderComponent(
-      shapeManager.getShape("Bunny"), "Phong", materialManager.getMaterial("Brass"));
+		shapeManager.getShape("Bunny"), shaderManager.DefaultShader, materialManager.getMaterial("Brass"));
 
 	std::shared_ptr<GameObject> bunnyObj = std::make_shared<GameObject>(
 		GameObjectType::DYNAMIC_OBJECT, 
@@ -322,4 +330,20 @@ void GameWorld::updateInternalGameObjectLists() {
 		staticGameObjects_.push_back(staticGameObjectsToAdd_.front());
 		staticGameObjectsToAdd_.pop();
 	}
+
+   while (!dynamicGameObjectsToRemove_.empty()) {
+      std::shared_ptr<GameObject> obj = dynamicGameObjectsToRemove_.front();
+      dynamicGameObjects_.erase(std::remove(dynamicGameObjects_.begin(),
+         dynamicGameObjects_.end(), obj), dynamicGameObjects_.end());
+
+      dynamicGameObjectsToRemove_.pop();
+   }
+
+   while (!staticGameObjectsToRemove_.empty()) {
+      std::shared_ptr<GameObject> obj = staticGameObjectsToRemove_.front();
+      staticGameObjects_.erase(std::remove(staticGameObjects_.begin(),
+         staticGameObjects_.end(), obj), staticGameObjects_.end());
+
+      staticGameObjectsToRemove_.pop();
+   }
 }

@@ -3,7 +3,12 @@
 
 ShaderManager& ShaderManager::instance() {
 	static ShaderManager *instance = new ShaderManager();
+
 	return *instance;
+}
+
+void ShaderManager::setDefaultShader(const std::string& shaderProgramName) {
+	shaderPrograms[DefaultShader] = shaderPrograms.at(shaderProgramName);
 }
 
 const std::string& ShaderManager::getBoundShaderName() {
@@ -180,26 +185,30 @@ void ShaderManager::renderObject(std::shared_ptr<GameObject> objToRender, const 
 
         glUniform1i(shaderProgram->getUniform("shadowMapTex"), 0);
 
-		// Set up and bind model transform
-		M->pushMatrix();
-		M->loadIdentity();
+      if (objToRender->fracture) {
+         shape->fracture(shaderProgram, material, M, objToRender);
+      } else {
+         // Set up and bind model transform
+         M->pushMatrix();
+         M->loadIdentity();
 
-		M->translate(objToRender->getPosition());
-		M->scale(objToRender->getScale());
+         M->translate(objToRender->getPosition());
+         M->scale(objToRender->getScale());
 
-      glm::mat4 rotation = objToRender->transform.getRotate();
-		M->rotateMat4(rotation);
+         glm::mat4 rotation = objToRender->transform.getRotate();
+         M->rotateMat4(rotation);
 
-		glUniformMatrix4fv(shaderProgram->getUniform("M"), 1, GL_FALSE, glm::value_ptr(M->topMatrix()));
+         glUniformMatrix4fv(shaderProgram->getUniform("M"), 1, GL_FALSE, glm::value_ptr(M->topMatrix()));
 
-		glm::mat4 tiM = glm::transpose(glm::inverse(M->topMatrix()));
-		glUniformMatrix4fv(shaderProgram->getUniform("tiM"), 1, GL_FALSE, glm::value_ptr(tiM));
+         glm::mat4 tiM = glm::transpose(glm::inverse(M->topMatrix()));
+         glUniformMatrix4fv(shaderProgram->getUniform("tiM"), 1, GL_FALSE, glm::value_ptr(tiM));
 
-		// Draw bunny
-		// TODO(rgarmsen): Make shape not need the shader program
-		shape->draw(shaderProgram, material);
+	   	// Draw bunny
+		   // TODO(rgarmsen): Make shape not need the shader program
+   		shape->draw(shaderProgram, material);
 
-		M->popMatrix();
+         M->popMatrix();
+      }
 
 
 #ifdef DEBUG_BB
@@ -218,13 +227,46 @@ void ShaderManager::renderObject(std::shared_ptr<GameObject> objToRender, const 
 		      M->scale(0.25);
             glUniformMatrix4fv(shaderProgram->getUniform("M"), 1, GL_FALSE, glm::value_ptr(M->topMatrix()));
 
-            shapeToDraw->draw(shaderProgram);
+            shapeToDraw->draw(shaderProgram, material);
             M->popMatrix();
          }
       }
 #endif
 
 		unbindShader();
+	}
+}
+
+void ShaderManager::renderBillboard(std::shared_ptr<GameObject> objToRender, const std::string& shaderName, const std::shared_ptr<Shape> shape,
+	const std::shared_ptr<Material> material, const std::shared_ptr<Texture> billboardTexture, std::shared_ptr<MatrixStack> P, std::shared_ptr<MatrixStack> V,
+	std::shared_ptr<MatrixStack> M) {
+	if (objToRender != NULL) {
+		const std::shared_ptr<Program> shaderProgram = getShaderProgram(shaderName);
+
+		// Bind perspective and view tranforms
+		glUniformMatrix4fv(shaderProgram->getUniform("P"), 1, GL_FALSE, glm::value_ptr(P->topMatrix()));
+		glUniformMatrix4fv(shaderProgram->getUniform("V"), 1, GL_FALSE, glm::value_ptr(V->topMatrix()));
+
+		GameManager& gameManager = GameManager::instance();
+		Camera& camera = gameManager.getCamera();
+
+		// Set up and bind model transform
+		M->pushMatrix();
+		M->loadIdentity();
+
+		M->translate(objToRender->getPosition());
+		M->scale(objToRender->getScale());
+
+		glm::mat4 rotation = objToRender->transform.getRotate();
+		M->rotateMat4(rotation);
+
+		glUniformMatrix4fv(shaderProgram->getUniform("M"), 1, GL_FALSE, glm::value_ptr(M->topMatrix()));
+
+		glm::mat4 tiM = glm::transpose(glm::inverse(M->topMatrix()));
+		glUniformMatrix4fv(shaderProgram->getUniform("tiM"), 1, GL_FALSE, glm::value_ptr(tiM));
+		
+
+		M->popMatrix();
 	}
 }
 
@@ -239,7 +281,6 @@ void ShaderManager::renderShadowPass(std::shared_ptr<GameObject> objToRender, co
 		GameWorld& gameWorld = gameManager.getGameWorld();
 
 		const std::vector<std::shared_ptr<Light>>& directionalLights = gameWorld.getDirectionalLights();
-		int numDirectionLights = directionalLights.size();
 
         std::shared_ptr<Light> light = directionalLights.at(0);
 
@@ -255,7 +296,8 @@ void ShaderManager::renderShadowPass(std::shared_ptr<GameObject> objToRender, co
 
 		M->translate(objToRender->getPosition());
 		M->scale(objToRender->getScale());
-		M->rotate(objToRender->getYAxisRotation(), glm::vec3(0.0f, 1.0f, 0.0f));
+        glm::mat4 rotation = objToRender->transform.getRotate();
+        M->rotateMat4(rotation);
 
 		glUniformMatrix4fv(shaderProgram->getUniform("M"), 1, GL_FALSE, glm::value_ptr(M->topMatrix()));
 
@@ -327,4 +369,8 @@ LightType ShaderManager::stringToLightType(std::string type) {
 
 ShaderManager::ShaderManager() {
 	boundShaderName = "";
+
+	// Put the default shader pair into the map of pairs (it will be set to the default once a default shader is loaded)
+	std::pair<std::string, std::shared_ptr<Program>> newShaderProgram(DefaultShader, nullptr);
+	shaderPrograms.insert(newShaderProgram);
 }

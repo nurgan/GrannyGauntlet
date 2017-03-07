@@ -34,6 +34,9 @@ public:
 	// Can a Cookie be delivered to this object
 	bool cookieDeliverable;
 
+   // Object is being fractured
+   bool fracture;
+
 	// Constructs a new GameObject using the given components.
 	// A NULL component will not be used
 	GameObject(GameObjectType objType,
@@ -69,8 +72,6 @@ public:
 
     void addRotation(float angle, const glm::vec3& axis);
 
-    void calculateAndSetInitialRotation();
-
     void changeMaterial(std::shared_ptr<Material> newMaterial);
 
     RenderComponent* getRenderComponent();
@@ -87,6 +88,9 @@ public:
     // Perform the any actions that are bound to the object, if any and if applicable at that moment
     void performAction(double deltaTime, double totalTime);
 
+	// Spawns a billboard effect indicating that the object was "hit" by another object
+	void spawnHitBillboardEffect(glm::vec3& positionOfHit);
+
 	// Changes the active shader for the object
 	void changeShader(const std::string& newShaderName);
 
@@ -97,6 +101,16 @@ public:
 	void triggerDeliveryAnimation();
 
     static GameObjectType stringToType(std::string type);
+
+   // Sets the fragment direction vector usually from Shape.cpp this also
+   // initializes the starting position of each fragment.
+   void setFragmentDirs(std::shared_ptr<std::vector<glm::vec3>> fragDirs);
+
+   // Gets the fragment direction vector for the fractured object
+   std::shared_ptr<std::vector<glm::vec3>> getFragmentDirs();
+
+   // Gets the fragment position vector for the fractured object
+   std::shared_ptr<std::vector<glm::vec3>> getFragmentPos();
 
     // Returns the BoundingBox associated with the object if it exists, otherwise returns |NULL|
     // TRY TO AVOID USING THIS IF POSSIBLE, SHOULD BE REMOVED AT SOME POINT, BB LOGIC ONLY IN PHYSICSCOMPONENT
@@ -133,6 +147,12 @@ private:
 
     // Arrow "Quest Marker" for deliverable palces
     std::shared_ptr<GameObject> arrow_;
+
+    // When an object is fractured this maintains the direction of each fragment
+    std::shared_ptr<std::vector<glm::vec3>> fragDirs_;
+
+    // The fractured objects current position.
+    std::shared_ptr<std::vector<glm::vec3>> fragPos_;
 
 };
 

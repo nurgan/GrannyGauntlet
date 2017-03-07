@@ -41,10 +41,24 @@ typedef struct Light {
 class ShaderManager {
 public:
 
+	// The key to the shader that is currently the default used in the world
+	// (e.g. if it is set to the Phong shader program, most things in the world
+	// should be shaded using the Phong shader)
+	const std::string DefaultShader = "Default";
+
+	const std::string PhongShader = "Phong";
+
+	const std::string CookTorranceShader = "CookTorrance";
+
+	const std::string ToonShader = "Toon";
+
 	~ShaderManager() {}
 
 	// Returns the single instance of the ShaderManager
 	static ShaderManager& instance();
+
+	// Changes the default shader to be used by object's running the default shader
+	void setDefaultShader(const std::string& shaderProgramName);
 
 	// Returns the currently bound shader program name
 	const std::string& getBoundShaderName();
@@ -80,6 +94,11 @@ public:
 	// Renders the given object
 	void renderObject(std::shared_ptr<GameObject> objToRender, const std::string& shaderName, const std::shared_ptr<Shape> shape,
  	 const std::shared_ptr<Material> material, std::shared_ptr<MatrixStack> P, std::shared_ptr<MatrixStack> V, std::shared_ptr<MatrixStack> M);
+
+	// Renders the given object as a billboard
+	void renderBillboard(std::shared_ptr<GameObject> objToRender, const std::string& shaderName, const std::shared_ptr<Shape> shape,
+		const std::shared_ptr<Material> material, const std::shared_ptr<Texture> billboardTexture, std::shared_ptr<MatrixStack> P, std::shared_ptr<MatrixStack> V,
+		std::shared_ptr<MatrixStack> M);
 
 	// Render the given object to the shadowmap
 	void renderShadowPass(std::shared_ptr<GameObject> objToRender, const std::shared_ptr<Shape> shape,
