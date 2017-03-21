@@ -35,7 +35,8 @@
    "level-shapes": [
       {
          "name": "Cube",
-         "filename": "cube.obj"
+         "filename": "tex_cube.obj",
+         "manual_texture": "Concrete"
       },
       {
          "name": "House01",
@@ -253,6 +254,10 @@
       {
          "name": "Cookie_Texture",
          "filename": "cookie_texture.jpg"
+      },
+      {
+         "name": "Concrete",
+         "filename": "grey.jpg"
       }
    ],
    "level-materials": [
@@ -289,7 +294,7 @@
          },
          "specular": {
             "r": 0.332741,
-            "g": 0.328634, 
+            "g": 0.328634,
             "b": 0.346435
          },
          "shininess": 38.4
@@ -441,7 +446,7 @@
          },
          "specular": {
             "r": 0.633,
-            "g": 0.727811, 
+            "g": 0.727811,
             "b": 0.633
          },
          "shininess": 76.8
@@ -1111,7 +1116,7 @@
          "render-component": {
             "name": "WallRenderComponent",
             "shape": "House04",
-            "shader": "Default",
+            "c": "Default",
             "material": "white"
          },
          "deliverable": true
